@@ -40,16 +40,25 @@ const git = (cmd) => execSync(`git ${cmd}`, { encoding: "utf8" }).trim();
   const baseCommit = await gh(`${API}/git/commits/${baseSha}`);
   console.log(`remote ${BRANCH} @ ${baseSha.slice(0, 7)}`);
 
-  // Compare local tracked files against the remote tree.
+  // Compare the local HEAD tree against the remote tree. Blob SHAs come from
+  // ls-tree, not hash-object: git stores line-ending-normalised content, so
+  // hashing the working file reports a spurious diff on every CRLF checkout.
   const remoteTree = await gh(`${API}/git/trees/${baseSha}?recursive=1`);
   const remote = new Map(
     remoteTree.tree.filter((n) => n.type === "blob").map((n) => [n.path, n.sha]),
   );
-  const local = git("ls-files").split("\n").filter(Boolean);
+  const local = new Map(
+    git("ls-tree -r HEAD")
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        const [meta, file] = line.split("\t");
+        return [file, meta.split(/\s+/)[2]];
+      }),
+  );
 
   const tree = [];
-  for (const file of local) {
-    const sha = git(`hash-object "${file}"`);
+  for (const [file, sha] of local) {
     if (remote.get(file) === sha) continue;
     const content = fs.readFileSync(path.join(process.cwd(), file)).toString("base64");
     const blob = await gh(`${API}/git/blobs`, {
@@ -60,7 +69,7 @@ const git = (cmd) => execSync(`git ${cmd}`, { encoding: "utf8" }).trim();
     console.log(`  + ${file}`);
   }
   for (const file of remote.keys()) {
-    if (!local.includes(file)) {
+    if (!local.has(file)) {
       tree.push({ path: file, mode: "100644", type: "blob", sha: null });
       console.log(`  - ${file}`);
     }
