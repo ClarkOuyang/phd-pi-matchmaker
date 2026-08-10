@@ -6,8 +6,6 @@
 // Diffs the local HEAD tree against the remote branch tip and syncs the
 // difference, so it works even when local and remote SHAs have diverged
 // (which they do after a previous API push rewrote the commit object).
-const fs = require("fs");
-const path = require("path");
 const { execSync } = require("child_process");
 
 const TOKEN = process.env.GH_TOKEN;
@@ -60,7 +58,12 @@ const git = (cmd) => execSync(`git ${cmd}`, { encoding: "utf8" }).trim();
   const tree = [];
   for (const [file, sha] of local) {
     if (remote.get(file) === sha) continue;
-    const content = fs.readFileSync(path.join(process.cwd(), file)).toString("base64");
+    // Upload the blob git stores, not the working-tree bytes: with CRLF
+    // checkout the two differ and the remote SHA would never converge.
+    const content = execSync(`git cat-file blob ${sha}`, {
+      encoding: "buffer",
+      maxBuffer: 64 * 1024 * 1024,
+    }).toString("base64");
     const blob = await gh(`${API}/git/blobs`, {
       method: "POST",
       body: JSON.stringify({ content, encoding: "base64" }),
