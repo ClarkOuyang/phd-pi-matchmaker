@@ -1,11 +1,14 @@
 node_modules/
 .next/
 out/
+build/
 .env
 .env.local
-*.log
+.env*.local
+npm-debug.log*
+yarn-error.log*
 .DS_Store
+*.tsbuildinfo
 next-env.d.ts
-.vercel
 coverage/
 npm-cache/

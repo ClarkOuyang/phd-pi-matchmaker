@@ -104,11 +104,12 @@ All optional. The application is fully functional with none of them set.
 ### Scripts
 
 ```bash
-npm run dev     # dev server
-npm run build   # production build
-npm start       # serve the production build
-npm test        # vitest unit + integration suite
-npm run lint    # eslint
+npm run dev        # dev server
+npm run build      # production build
+npm start          # serve the production build
+npm test           # vitest unit + integration suite
+npm run typecheck  # tsc --noEmit
+npm run lint       # eslint
 ```
 
 ---
