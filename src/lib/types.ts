@@ -20,6 +20,8 @@ export interface Paper {
   url?: string;
   /** OpenAlex author position count — proxy for new-student co-authorship */
   authorCount?: number;
+  /** Distinct contributing institutions on the paper. */
+  collaboratingInstitutions?: number;
 }
 
 export interface Grant {

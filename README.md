@@ -97,6 +97,7 @@ All optional. The application is fully functional with none of them set.
 | Variable | Purpose |
 |---|---|
 | `OPENALEX_MAILTO` | Your email — joins the OpenAlex "polite pool" for better rate limits. Recommended. |
+| `OPENALEX_MIN_GAP_MS` | Minimum gap between OpenAlex calls (default `110`). Raise it if you still see 429s. |
 | `SCRAPER_MODE` | `fetch` (default) or `playwright` for JS-rendered lab pages. |
 | `DATABASE_URL` | PostgreSQL / Supabase URL if you replace the in-memory cache. |
 
@@ -163,6 +164,8 @@ topic
 
 Every external call is wrapped with a timeout, a 12-hour cache, and error capture. A failure for one PI or one university becomes a `warnings[]` entry in the response instead of failing the whole search.
 
+**Rate limiting and payload size.** OpenAlex returns HTTP 429 to bursty clients, which silently dropped whole universities from results. Outbound calls are therefore serialised through a queue with a minimum gap (`OPENALEX_MIN_GAP_MS`, default 110ms) and retried with exponential backoff on 429/5xx. Responses are also trimmed with `select=` to just the rendered fields — `authorships` is excluded because hyperauthorship papers pushed single responses past 4MB and broke the data cache, so collaboration breadth is read from `institutions_distinct_count` instead. Together these took a representative multi-topic run from 6 warnings to 0.
+
 ### API
 
 **`POST /api/search`**
@@ -187,9 +190,9 @@ Every external call is wrapped with a timeout, a 12-hour cache, and error captur
 
 ```
 ✓ tests/coldEmail.test.ts  (3 tests)
-✓ tests/heuristic.test.ts  (6 tests)
+✓ tests/heuristic.test.ts  (7 tests)
 ✓ tests/pipeline.test.ts   (6 tests)
-  15 passed
+  16 passed
 ```
 
 Coverage includes: expanding/stable/downsizing classification, heuristic determinism, graceful behaviour with zero data, the yearly-histogram path overriding a truncated works page, funder normalisation, internal-vs-external funder split, the legacy `grants` payload shape, strict QS/THE ordering, DOI normalisation, top-3 paper selection, HTML stripping, and email personalisation (including preferring an external agency over the PI's own university).

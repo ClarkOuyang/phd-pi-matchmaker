@@ -156,16 +156,19 @@ export function assessAdmission(
     }
   }
 
-  // 5. Large author lists in recent papers -> junior members joining.
+  // 5. Collaboration breadth on recent papers -> an active, staffed group.
   //    Uses a share of recent output, not a raw count, so prolific senior PIs
-  //    don't automatically trip the signal.
+  //    don't automatically trip the signal. Falls back to author counts when
+  //    the institution figure isn't available.
   const recentPapers = signals.papers.filter((p) => p.year >= year - 1);
-  const bigTeam = recentPapers.filter((p) => (p.authorCount ?? 0) >= 5).length;
+  const bigTeam = recentPapers.filter(
+    (p) => (p.collaboratingInstitutions ?? 0) >= 3 || (p.authorCount ?? 0) >= 5,
+  ).length;
   if (recentPapers.length >= 4 && bigTeam / recentPapers.length >= 0.6) {
     evidence++;
     score += weights.largeTeamPapers;
     reasons.push(
-      `${bigTeam} of ${recentPapers.length} recent papers carry large author lists, suggesting a sizeable and still-staffed group.`,
+      `${bigTeam} of ${recentPapers.length} recent papers are broad multi-group collaborations, suggesting a sizeable and still-staffed lab.`,
     );
   }
 

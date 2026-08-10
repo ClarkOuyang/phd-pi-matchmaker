@@ -61,6 +61,22 @@ describe("assessAdmission", () => {
     expect(r.status).not.toBe("EXPANDING");
   });
 
+  it("reads collaboration breadth from institution counts when author lists are absent", () => {
+    const p = (year: number, insts: number): Paper => ({
+      title: "x",
+      year,
+      citations: 5,
+      collaboratingInstitutions: insts,
+    });
+    const r = assessAdmission({
+      papers: [p(2026, 4), p(2026, 5), p(2025, 3), p(2025, 6)],
+      grants: [grant(2025), grant(2026, "NIH"), grant(2026, "ERC")],
+      currentYear: YEAR,
+    });
+    expect(r.reasons.join(" ")).toMatch(/multi-group collaborations/i);
+    expect(r.status).toBe("EXPANDING");
+  });
+
   it("degrades gracefully with zero data", () => {
     const r = assessAdmission({ papers: [], grants: [], currentYear: YEAR });
     expect(r.confidence).toBe("low");

@@ -29,6 +29,9 @@ export interface OpenAlexWork {
   doi?: string | null;
   primary_location?: { source?: { display_name?: string } | null; landing_page_url?: string | null } | null;
   authorships?: { author: { display_name: string }; author_position: string }[];
+  /** Distinct contributing institutions — proxy for collaboration breadth. */
+  institutions_distinct_count?: number;
+  is_authors_truncated?: boolean;
   /** OpenAlex exposes funding acknowledgements under `funders`, not `grants`. */
   funders?: { display_name?: string; award_id?: string | null }[];
 }
@@ -51,26 +54,69 @@ export class OpenAlexError extends Error {
   }
 }
 
+/**
+ * Serialises outbound OpenAlex calls with a minimum gap between them.
+ * OpenAlex rate-limits bursty clients with HTTP 429; firing every author
+ * lookup in parallel loses whole universities from the results.
+ */
+const MIN_GAP_MS = Number(process.env.OPENALEX_MIN_GAP_MS ?? 110);
+let queue: Promise<unknown> = Promise.resolve();
+let lastCall = 0;
+
+function schedule<T>(fn: () => Promise<T>): Promise<T> {
+  const run = queue.then(async () => {
+    const wait = Math.max(0, lastCall + MIN_GAP_MS - Date.now());
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    lastCall = Date.now();
+    return fn();
+  });
+  // keep the chain alive even when a call rejects
+  queue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
+}
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function getJson<T>(path: string, params: Record<string, string>, timeoutMs = 12_000): Promise<T> {
   const url = withMailto(new URL(path, BASE));
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const res = await fetch(url.toString(), {
-      headers: { "User-Agent": UA, Accept: "application/json" },
-      signal: controller.signal,
-      next: { revalidate: 60 * 60 * 12 },
-    });
-    if (!res.ok) throw new OpenAlexError(`OpenAlex ${res.status} for ${path}`, res.status);
-    return (await res.json()) as T;
-  } catch (err) {
-    if (err instanceof OpenAlexError) throw err;
-    throw new OpenAlexError(`OpenAlex request failed: ${(err as Error).message}`);
-  } finally {
-    clearTimeout(timer);
+  const attempt = async (): Promise<T> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url.toString(), {
+        headers: { "User-Agent": UA, Accept: "application/json" },
+        signal: controller.signal,
+        next: { revalidate: 60 * 60 * 12 },
+      });
+      if (!res.ok) throw new OpenAlexError(`OpenAlex ${res.status} for ${path}`, res.status);
+      return (await res.json()) as T;
+    } catch (err) {
+      if (err instanceof OpenAlexError) throw err;
+      throw new OpenAlexError(`OpenAlex request failed: ${(err as Error).message}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  // Retry with backoff on rate limiting / transient upstream errors.
+  const RETRIABLE = new Set([429, 500, 502, 503, 504]);
+  let lastErr: unknown;
+  for (let i = 0; i < 3; i++) {
+    try {
+      return await schedule(attempt);
+    } catch (err) {
+      lastErr = err;
+      const status = err instanceof OpenAlexError ? err.status : undefined;
+      if (status === undefined || !RETRIABLE.has(status)) throw err;
+      await sleep(400 * 2 ** i);
+    }
   }
+  throw lastErr;
 }
 
 interface GroupBucket {
@@ -131,6 +177,16 @@ export async function searchAuthorsByTopic(
   );
 }
 
+/**
+ * Only the fields the app actually renders — keeps responses small enough for
+ * the data cache. `authorships` is deliberately excluded: hyperauthorship
+ * papers (thousands of authors) pushed single responses past 4MB, and OpenAlex
+ * offers no plain author-count field. `institutions_distinct_count` is fetched
+ * instead as a lightweight proxy for collaboration breadth.
+ */
+const WORK_FIELDS =
+  "id,title,display_name,publication_year,cited_by_count,doi,primary_location,institutions_distinct_count,is_authors_truncated,funders";
+
 /** Recent works for an author, newest first. */
 export async function fetchAuthorWorks(authorId: string, perPage = 25): Promise<OpenAlexWork[]> {
   const id = authorId.replace(/^https?:\/\/openalex\.org\//, "");
@@ -138,6 +194,7 @@ export async function fetchAuthorWorks(authorId: string, perPage = 25): Promise<
     filter: `author.id:${id}`,
     per_page: String(perPage),
     sort: "publication_year:desc",
+    select: WORK_FIELDS,
   });
   return page.results ?? [];
 }
@@ -167,6 +224,7 @@ export function toPaper(work: OpenAlexWork): Paper {
     citations: work.cited_by_count ?? 0,
     url: doi ? `https://doi.org/${doi}` : work.primary_location?.landing_page_url ?? undefined,
     authorCount: work.authorships?.length,
+    collaboratingInstitutions: work.institutions_distinct_count,
   };
 }
 
