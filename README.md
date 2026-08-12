@@ -202,6 +202,17 @@ The full stack was also verified against the live OpenAlex API and in a real bro
 
 ---
 
+## Deploy
+
+The app is a standard Next.js build and deploys to any Node host. For a free, zero-config deploy on Vercel:
+
+1. Push to GitHub (already done — `main` branch).
+2. Go to **https://vercel.com/new** → **Import** `ClarkOuyang/phd-pi-matchmaker`.
+3. Framework preset: **Next.js** (auto-detected). No build settings needed; `vercel.json` pins Node 20.
+4. **Deploy.** The public URL is generated in ~1 minute.
+
+No environment variables are required — OpenAlex needs no key. Optionally set `OPENALEX_MAILTO` for the polite pool. The in-memory cache is per-instance, so on serverless a warm-start cache is shared within a region; for cross-request persistence, wire `DATABASE_URL` to Postgres/Supabase and swap the cache in `src/lib/cache.ts`.
+
 ## Data sources & limitations
 
 - **OpenAlex** (CC0) — bibliometrics, funding acknowledgements. Coverage of funding metadata varies by publisher; absence of a grant is not proof of absence of funding.
