@@ -18,6 +18,30 @@ function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+/** Strip the OpenAlex URL prefix so we compare bare ids. */
+function bareId(id: string | undefined): string {
+  return (id ?? "").replace(/^https?:\/\/openalex\.org\//, "");
+}
+
+/**
+ * Does this author actually belong to the university we searched under?
+ *
+ * OpenAlex's `authorships.institutions.lineage` only guarantees the author has
+ * *ever co-signed* a paper with that institution in the lineage — it does NOT
+ * mean they are (or were) employed there. Many results are external
+ * collaborators. We confirm real affiliation via `last_known_institutions`,
+ * which lists institutions the author has been associated with. When that
+ * field is empty we can't verify, so we keep the author (fail-open) rather
+ * than silently dropping everyone.
+ */
+function authorAtInstitution(author: OpenAlexAuthor, uni: University): boolean {
+  const target = bareId(uni.openAlexId);
+  if (!target) return true;
+  const lk = author.last_known_institutions ?? [];
+  if (lk.length === 0) return true;
+  return lk.some((i) => bareId(i.id) === target);
+}
+
 async function buildProfile(author: OpenAlexAuthor, uni: University, warnings: string[]): Promise<PIProfile> {
   const year = new Date().getFullYear();
   let works: Awaited<ReturnType<typeof fetchAuthorWorks>> = [];
@@ -42,7 +66,7 @@ async function buildProfile(author: OpenAlexAuthor, uni: University, warnings: s
   const hIndex = author.summary_stats?.h_index ?? null;
   const citations = author.cited_by_count ?? null;
   const publications = author.works_count ?? null;
-  const orcid = author.ids?.orcid;
+  const orcid = author.ids?.orcid?.replace(/^https?:\/\/orcid\.org\//, "");
 
   const q = encodeURIComponent(author.display_name);
   const schoolFacultySearch = `https://www.google.com/search?q=${encodeURIComponent(`site:${uni.siteDomain} "${author.display_name}" faculty`)}`;
@@ -96,6 +120,22 @@ export async function runSearch(query: SearchQuery): Promise<SearchResponse> {
       warnings.push(`Author search failed for ${uni.name}: ${(err as Error).message}`);
       continue;
     }
+
+    // Drop authors whose only tie to this university is a co-authored paper
+    // elsewhere — keep only those actually affiliated (last_known_institutions).
+    const before = authors.length;
+    const affiliated = authors.filter((a) => authorAtInstitution(a, uni));
+    const dropped = before - affiliated.length;
+    if (dropped > 0) {
+      const names = authors
+        .filter((a) => !authorAtInstitution(a, uni))
+        .map((a) => a.display_name)
+        .slice(0, 5);
+      warnings.push(
+        `${dropped} author(s) excluded from ${uni.name} (no affiliation record, likely external collaborators): ${names.join(", ")}${dropped > names.length ? "…" : ""}`,
+      );
+    }
+    authors = affiliated;
 
     let faculty = await Promise.all(authors.map((a) => buildProfile(a, uni, warnings)));
 
