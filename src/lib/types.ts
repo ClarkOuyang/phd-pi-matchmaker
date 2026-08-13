@@ -12,6 +12,8 @@ export interface University {
   usNewsRank: number;
   ror?: string;
   openAlexId?: string;
+  /** Official web domain, used for labelled faculty-directory search links. */
+  siteDomain: string;
 }
 
 export interface Paper {
@@ -56,7 +58,15 @@ export interface PIProfile {
   title: string;
   department: string;
   email?: string;
-  facultyPage?: string;
+  /** Authoritative ORCID profile (from OpenAlex) — real official academic page. */
+  orcid?: string;
+  /** Official faculty directory link. We never fabricate a deep URL: this is a
+   *  site-scoped search on the university's real domain, clearly labelled. */
+  schoolFacultySearch?: string;
+  /** Personal homepage lookup. OpenAlex does not expose personal URLs, so we
+   *  expose a web search scoped to likely personal-site patterns, labelled. */
+  personalHomeSearch?: string;
+  /** Deprecated OpenAlex author page — intentionally removed per user request. */
   labWebsite?: string;
   universityId: string;
   researchAreas: string[];

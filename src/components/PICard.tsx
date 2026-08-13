@@ -21,8 +21,12 @@ function Metric({ label, value, icon: Icon }: { label: string; value: string; ic
   );
 }
 
-function scholarUrl(name: string): string {
-  return `https://scholar.google.com/scholar?q=${encodeURIComponent(name)}`;
+function scholarUrl(name: string, orcid?: string): string {
+  // Google Scholar has no public author-id API and blocks scraping, so we
+  // deep-link to a search. When we have an ORCID we scope the query to it,
+  // which lands far closer to the real profile than a bare name search.
+  const q = orcid ? `${name} (ORCID ${orcid})` : name;
+  return `https://scholar.google.com/scholar?q=${encodeURIComponent(q)}`;
 }
 
 export function PICard({ pi }: { pi: PIProfile }) {
@@ -97,21 +101,41 @@ export function PICard({ pi }: { pi: PIProfile }) {
           <Mail size={13} /> {t("draftEmail")}
         </button>
         <a
-          href={scholarUrl(pi.name)}
+          href={scholarUrl(pi.name, pi.orcid)}
           target="_blank"
           rel="noreferrer"
           className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400"
         >
-          <GraduationCap size={12} /> {t("scholar")}
+          <GraduationCap size={12} /> Google Scholar
         </a>
-        {pi.facultyPage && (
-          <a href={pi.facultyPage} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400">
-            {t("facultyPage")} <ExternalLink size={11} />
+        {pi.orcid && (
+          <a
+            href={`https://orcid.org/${pi.orcid}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400"
+          >
+            ORCID <ExternalLink size={11} />
           </a>
         )}
-        {pi.labWebsite && (
-          <a href={pi.labWebsite} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400">
-            {t("labSite")} <ExternalLink size={11} />
+        {pi.schoolFacultySearch && (
+          <a
+            href={pi.schoolFacultySearch}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400"
+          >
+            {t("schoolFaculty")} <ExternalLink size={11} />
+          </a>
+        )}
+        {pi.personalHomeSearch && (
+          <a
+            href={pi.personalHomeSearch}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400"
+          >
+            {t("personalHome")} <ExternalLink size={11} />
           </a>
         )}
       </div>

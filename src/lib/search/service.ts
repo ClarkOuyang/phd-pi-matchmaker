@@ -10,7 +10,6 @@ import {
 } from "@/lib/academic_api/openalex";
 import { assessAdmission } from "@/lib/admission/heuristic";
 import { sortByRanking, UNIVERSITIES, rankOf, type RankingSource } from "@/lib/data/universities";
-import { scrapeLabPage } from "@/lib/scrapers/labPage";
 import type { PIProfile, SearchQuery, SearchResponse, UniversityGroup, University } from "@/lib/types";
 
 const TTL = 1000 * 60 * 60 * 12;
@@ -38,26 +37,25 @@ async function buildProfile(author: OpenAlexAuthor, uni: University, warnings: s
   const papers = works.map(toPaper);
   const grants = grantsFromWorks(works, year - 3);
 
-  let labPageText: string | undefined;
-  const labWebsite = undefined; // populated when a faculty directory scraper supplies it
-  if (labWebsite) {
-    const scrape = await scrapeLabPage(labWebsite);
-    if (scrape.ok) labPageText = [...scrape.prospectiveStudentSnippets, ...scrape.fundingSnippets].join(" ");
-  }
-
-  const admission = assessAdmission({ papers, grants, publicationsByYear, labPageText, currentYear: year });
+  const admission = assessAdmission({ papers, grants, publicationsByYear, labPageText: undefined, currentYear: year });
 
   const hIndex = author.summary_stats?.h_index ?? null;
   const citations = author.cited_by_count ?? null;
   const publications = author.works_count ?? null;
+  const orcid = author.ids?.orcid;
+
+  const q = encodeURIComponent(author.display_name);
+  const schoolFacultySearch = `https://www.google.com/search?q=${encodeURIComponent(`site:${uni.siteDomain} "${author.display_name}" faculty`)}`;
+  const personalHomeSearch = `https://www.google.com/search?q=${encodeURIComponent(`"${author.display_name}" (site:.edu OR site:.ac OR site:.org) professor homepage`)}`;
 
   return {
     id: slug(`${uni.id}-${author.display_name}`),
     name: author.display_name,
     title: "Faculty / Principal Investigator",
     department: author.topics?.[0]?.display_name ?? "Interdisciplinary",
-    facultyPage: author.id,
-    labWebsite,
+    orcid,
+    schoolFacultySearch,
+    personalHomeSearch,
     universityId: uni.id,
     researchAreas: (author.topics ?? []).slice(0, 4).map((t) => t.display_name),
     metrics: {
