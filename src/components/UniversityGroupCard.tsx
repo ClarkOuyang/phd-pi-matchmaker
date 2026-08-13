@@ -4,10 +4,21 @@ import { motion } from "framer-motion";
 import { GraduationCap, MapPin } from "lucide-react";
 import { PICard } from "@/components/PICard";
 import type { UniversityGroup } from "@/lib/types";
+import { rankOf, rankLabel, type RankingSource } from "@/lib/data/universities";
+import { useI18n } from "@/lib/i18n";
 
-export function UniversityGroupCard({ group, index, rankingSource }: { group: UniversityGroup; index: number; rankingSource: "QS" | "THE" }) {
+export function UniversityGroupCard({
+  group,
+  index,
+  rankingSource,
+}: {
+  group: UniversityGroup;
+  index: number;
+  rankingSource: RankingSource;
+}) {
+  const { t } = useI18n();
   const { university: u, faculty } = group;
-  const rank = rankingSource === "THE" ? u.theRank : u.qsRank;
+  const rank = rankOf(u, rankingSource);
 
   return (
     <motion.section
@@ -26,11 +37,11 @@ export function UniversityGroupCard({ group, index, rankingSource }: { group: Un
             {u.name}
           </h3>
           <p className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-            <MapPin size={12} /> {u.country} · {u.region} · QS #{u.qsRank} · THE #{u.theRank}
+            <MapPin size={12} /> {u.country} · {u.region} · {rankLabel(rankingSource)} #{rank}
           </p>
         </div>
         <span className="ml-auto rounded-full bg-slate-100 px-3 py-1 text-xs font-medium dark:bg-slate-800">
-          {faculty.length} matching PI{faculty.length === 1 ? "" : "s"}
+          {faculty.length} {t("matchingPIs")}
         </span>
       </header>
 

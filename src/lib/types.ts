@@ -1,5 +1,7 @@
 export type Region = "US" | "UK" | "EU" | "Asia" | "Other";
 
+export type RankingSource = "QS" | "THE" | "US_NEWS";
+
 export interface University {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export interface University {
   region: Region;
   qsRank: number;
   theRank: number;
+  usNewsRank: number;
   ror?: string;
   openAlexId?: string;
 }
@@ -61,6 +64,8 @@ export interface PIProfile {
     citations: number | null;
     hIndex: number | null;
     publications: number | null;
+    /** Data source for the citation/h-index metrics (e.g. "OpenAlex"). */
+    metricSource: string;
     lastUpdated?: string;
     partial: boolean;
   };
@@ -79,8 +84,10 @@ export interface SearchQuery {
   regions?: Region[];
   minCitations?: number;
   recruitingOnly?: boolean;
-  rankingSource?: "QS" | "THE";
+  rankingSource?: RankingSource;
   limit?: number;
+  /** How many PIs to show per university before filters are applied. */
+  perUniversity?: number;
 }
 
 export interface SearchResponse {

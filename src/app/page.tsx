@@ -3,19 +3,29 @@
 import { useState } from "react";
 import { Loader2, Search, SlidersHorizontal } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle } from "@/components/LanguageToggle";
 import { UniversityGroupCard } from "@/components/UniversityGroupCard";
-import type { Region, SearchResponse } from "@/lib/types";
+import type { Region, SearchResponse, RankingSource } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 const REGIONS: Region[] = ["US", "UK", "EU", "Asia", "Other"];
-const EXAMPLES = ["Photoelectrochemical Water Splitting", "Diffusion Models in Biology", "Solid-State Batteries", "Single-Cell Transcriptomics"];
+const RANKINGS: RankingSource[] = ["QS", "THE", "US_NEWS"];
+const EXAMPLES = [
+  "Photoelectrochemical Water Splitting",
+  "Diffusion Models in Biology",
+  "Solid-State Batteries",
+  "Single-Cell Transcriptomics",
+];
 
 export default function Home() {
+  const { t, lang } = useI18n();
   const [topic, setTopic] = useState("");
   const [regions, setRegions] = useState<Region[]>([]);
   const [minCitations, setMinCitations] = useState(0);
   const [recruitingOnly, setRecruitingOnly] = useState(false);
-  const [rankingSource, setRankingSource] = useState<"QS" | "THE">("QS");
+  const [rankingSource, setRankingSource] = useState<RankingSource>("QS");
   const [limit, setLimit] = useState(6);
+  const [perUniversity, setPerUniversity] = useState(8);
   const [data, setData] = useState<SearchResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +38,7 @@ export default function Home() {
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: term, regions, minCitations, recruitingOnly, rankingSource, limit }),
+        body: JSON.stringify({ topic: term, regions, minCitations, recruitingOnly, rankingSource, limit, perUniversity }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Search failed");
@@ -49,12 +59,13 @@ export default function Home() {
     <main className="mx-auto max-w-6xl px-4 py-10">
       <header className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">PhD Cold-Email & PI Matchmaker</h1>
-          <p className="mt-1 text-slate-600 dark:text-slate-400">
-            名校博士套磁导师一站式服务平台 — rank-ordered PI discovery, live OpenAlex metrics, funding &amp; admission-capacity analysis.
-          </p>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="mt-1 text-slate-600 dark:text-slate-400">{t("subtitle")}</p>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -65,7 +76,7 @@ export default function Home() {
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && search()}
-              placeholder="Enter a research topic, e.g. Photoelectrochemical Water Splitting"
+              placeholder={t("searchPlaceholder")}
               className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm outline-none focus:border-brand-500 dark:border-slate-700 dark:bg-slate-800"
             />
           </div>
@@ -75,11 +86,12 @@ export default function Home() {
             className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-50"
           >
             {loading ? <Loader2 size={15} className="animate-spin" /> : <Search size={15} />}
-            Search
+            {t("search")}
           </button>
         </div>
 
         <div className="mt-3 flex flex-wrap gap-2">
+          <span className="self-center text-xs text-slate-400">{t("examples")}:</span>
           {EXAMPLES.map((e) => (
             <button
               key={e}
@@ -96,7 +108,7 @@ export default function Home() {
 
         <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-slate-200 pt-4 text-sm dark:border-slate-800">
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            <SlidersHorizontal size={13} /> Filters
+            <SlidersHorizontal size={13} /> {t("filters")}
           </span>
 
           <div className="flex flex-wrap gap-1.5">
@@ -116,7 +128,7 @@ export default function Home() {
           </div>
 
           <label className="flex items-center gap-2 text-xs">
-            Min citations
+            {t("minCitations")}
             <input
               type="number"
               min={0}
@@ -129,29 +141,44 @@ export default function Home() {
 
           <label className="flex items-center gap-2 text-xs">
             <input type="checkbox" checked={recruitingOnly} onChange={(e) => setRecruitingOnly(e.target.checked)} />
-            Actively recruiting only
+            {t("recruitingOnly")}
           </label>
 
           <label className="flex items-center gap-2 text-xs">
-            Ranking
+            {t("ranking")}
             <select
               value={rankingSource}
-              onChange={(e) => setRankingSource(e.target.value as "QS" | "THE")}
+              onChange={(e) => setRankingSource(e.target.value as RankingSource)}
               className="rounded border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-800"
             >
-              <option value="QS">QS</option>
-              <option value="THE">THE</option>
+              {RANKINGS.map((r) => (
+                <option key={r} value={r}>
+                  {r === "US_NEWS" ? "US News" : r}
+                </option>
+              ))}
             </select>
           </label>
 
           <label className="flex items-center gap-2 text-xs">
-            Universities
+            {t("universities")}
             <input
               type="number"
               min={1}
               max={15}
               value={limit}
               onChange={(e) => setLimit(Number(e.target.value))}
+              className="w-16 rounded border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-800"
+            />
+          </label>
+
+          <label className="flex items-center gap-2 text-xs">
+            {t("professorsPerUni")}
+            <input
+              type="number"
+              min={3}
+              max={20}
+              value={perUniversity}
+              onChange={(e) => setPerUniversity(Number(e.target.value))}
               className="w-16 rounded border border-slate-300 px-2 py-1 dark:border-slate-700 dark:bg-slate-800"
             />
           </label>
@@ -164,20 +191,19 @@ export default function Home() {
         </div>
       )}
 
-      {loading && (
-        <p className="mt-8 text-center text-sm text-slate-500">
-          Querying OpenAlex across ranked universities — this can take 10–30 seconds…
-        </p>
-      )}
+      {loading && <p className="mt-8 text-center text-sm text-slate-500">{t("loading")}</p>}
 
       {data && !loading && (
         <div className="mt-8">
           <p className="mb-4 text-sm text-slate-500 dark:text-slate-400">
-            {data.totalFaculty} PIs across {data.totalUniversities} universities, ordered by {data.query.rankingSource} rank.
+            {data.totalFaculty} {t("matchingPIs")} {data.totalUniversities} {t("universitiesOrderedBy")}{" "}
+            {rankingSource === "US_NEWS" ? "US News" : rankingSource} {t("rank")}.
           </p>
           {data.warnings.length > 0 && (
             <details className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
-              <summary className="cursor-pointer font-medium">{data.warnings.length} data warnings</summary>
+              <summary className="cursor-pointer font-medium">
+                {data.warnings.length} {t("dataWarnings")}
+              </summary>
               <ul className="mt-2 list-disc pl-5">
                 {data.warnings.map((w, i) => (
                   <li key={i}>{w}</li>
@@ -186,9 +212,7 @@ export default function Home() {
             </details>
           )}
           {data.groups.length === 0 ? (
-            <p className="rounded-lg border border-slate-200 p-8 text-center text-slate-500 dark:border-slate-800">
-              No matching PIs. Try a broader topic or relax the filters.
-            </p>
+            <p className="rounded-lg border border-slate-200 p-8 text-center text-slate-500 dark:border-slate-800">{t("noMatch")}</p>
           ) : (
             <div className="space-y-5">
               {data.groups.map((g, i) => (
@@ -199,9 +223,7 @@ export default function Home() {
         </div>
       )}
 
-      <footer className="mt-16 border-t border-slate-200 pt-6 text-xs text-slate-500 dark:border-slate-800">
-        Data: OpenAlex (CC0) · QS &amp; THE World University Rankings 2025 · Admission status is a heuristic estimate, not an official statement from the PI.
-      </footer>
+      <footer className="mt-16 border-t border-slate-200 pt-6 text-xs text-slate-500 dark:border-slate-800">{t("footer")}</footer>
     </main>
   );
 }

@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Award, BookOpen, ChevronDown, ExternalLink, Mail, Quote, Wallet } from "lucide-react";
+import { Award, BookOpen, ChevronDown, ExternalLink, Mail, Quote, Wallet, GraduationCap, Database } from "lucide-react";
 import { AdmissionBadge } from "@/components/AdmissionBadge";
 import { ColdEmailDialog } from "@/components/ColdEmailDialog";
 import type { PIProfile } from "@/lib/types";
 import { formatNumber } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
+import { localizeReasons } from "@/lib/admission/heuristic";
 
 function Metric({ label, value, icon: Icon }: { label: string; value: string; icon: React.ElementType }) {
   return (
@@ -19,9 +21,17 @@ function Metric({ label, value, icon: Icon }: { label: string; value: string; ic
   );
 }
 
+function scholarUrl(name: string): string {
+  return `https://scholar.google.com/scholar?q=${encodeURIComponent(name)}`;
+}
+
 export function PICard({ pi }: { pi: PIProfile }) {
   const [open, setOpen] = useState(false);
   const [emailOpen, setEmailOpen] = useState(false);
+  const { t, lang } = useI18n();
+
+  const externalGrants = pi.grants.filter((g) => g.external !== false);
+  const hasExternal = externalGrants.length > 0;
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900">
@@ -45,15 +55,31 @@ export function PICard({ pi }: { pi: PIProfile }) {
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-2">
-        <Metric label="Citations" value={formatNumber(pi.metrics.citations)} icon={Quote} />
-        <Metric label="h-index" value={formatNumber(pi.metrics.hIndex)} icon={Award} />
-        <Metric label="Papers" value={formatNumber(pi.metrics.publications)} icon={BookOpen} />
+        <Metric label={t("citations")} value={formatNumber(pi.metrics.citations)} icon={Quote} />
+        <Metric label={t("hIndex")} value={formatNumber(pi.metrics.hIndex)} icon={Award} />
+        <Metric label={t("papers")} value={formatNumber(pi.metrics.publications)} icon={BookOpen} />
+      </div>
+
+      {/* Funding badge — surfaced on the card, not just in the deep panel. */}
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${
+            hasExternal
+              ? "bg-emerald-100 text-emerald-800 ring-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/30"
+              : "bg-slate-100 text-slate-600 ring-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700"
+          }`}
+        >
+          <Wallet size={12} />
+          {t("fundingStatus")}: {hasExternal ? t("funded") : t("noExternalFunding")}
+          {hasExternal && ` (${externalGrants.length})`}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] text-slate-500 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700">
+          <Database size={11} /> {t("source")}: {pi.metrics.metricSource}
+        </span>
       </div>
 
       {pi.metrics.partial && (
-        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-          Some metrics are unavailable from OpenAlex; shown as “—”.
-        </p>
+        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">{t("partialMetrics")}</p>
       )}
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -61,28 +87,31 @@ export function PICard({ pi }: { pi: PIProfile }) {
           onClick={() => setOpen((o) => !o)}
           className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
         >
-          Deep metrics
+          {t("deepMetrics")}
           <ChevronDown size={13} className={open ? "rotate-180 transition" : "transition"} />
         </button>
         <button
           onClick={() => setEmailOpen(true)}
           className="inline-flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-600"
         >
-          <Mail size={13} /> Draft Cold Email
+          <Mail size={13} /> {t("draftEmail")}
         </button>
+        <a
+          href={scholarUrl(pi.name)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400"
+        >
+          <GraduationCap size={12} /> {t("scholar")}
+        </a>
         {pi.facultyPage && (
-          <a
-            href={pi.facultyPage}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400"
-          >
-            Faculty page <ExternalLink size={11} />
+          <a href={pi.facultyPage} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400">
+            {t("facultyPage")} <ExternalLink size={11} />
           </a>
         )}
         {pi.labWebsite && (
           <a href={pi.labWebsite} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-brand-600 hover:underline dark:text-brand-400">
-            Lab site <ExternalLink size={11} />
+            {t("labSite")} <ExternalLink size={11} />
           </a>
         )}
       </div>
@@ -97,19 +126,23 @@ export function PICard({ pi }: { pi: PIProfile }) {
             className="overflow-hidden"
           >
             <div className="mt-4 space-y-4 border-t border-slate-200 pt-4 text-sm dark:border-slate-800">
+              <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+                {t("verifyScholar")}
+              </p>
+
               <section>
-                <h5 className="mb-2 font-semibold">Why this admission status</h5>
+                <h5 className="mb-2 font-semibold">{t("whyStatus")}</h5>
                 <ul className="list-disc space-y-1 pl-5 text-slate-600 dark:text-slate-300">
-                  {pi.admission.reasons.map((r, i) => (
+                  {localizeReasons(pi.admission.reasons, lang).map((r, i) => (
                     <li key={i}>{r}</li>
                   ))}
                 </ul>
               </section>
 
               <section>
-                <h5 className="mb-2 font-semibold">Representative papers</h5>
+                <h5 className="mb-2 font-semibold">{t("repPapers")}</h5>
                 {pi.topPapers.length === 0 ? (
-                  <p className="text-slate-500">No indexed publications found.</p>
+                  <p className="text-slate-500">{t("noPapers")}</p>
                 ) : (
                   <ol className="space-y-1.5">
                     {pi.topPapers.map((p, i) => (
@@ -134,17 +167,17 @@ export function PICard({ pi }: { pi: PIProfile }) {
 
               <section>
                 <h5 className="mb-2 flex items-center gap-1.5 font-semibold">
-                  <Wallet size={14} /> Recent funding (last 3 years)
+                  <Wallet size={14} /> {t("recentFunding")}
                 </h5>
                 {pi.grants.length === 0 ? (
-                  <p className="text-slate-500">No grant acknowledgements found in indexed papers.</p>
+                  <p className="text-slate-500">{t("noFunding")}</p>
                 ) : (
                   <ul className="space-y-1">
                     {pi.grants.slice(0, 8).map((g, i) => (
                       <li key={i} className="text-slate-600 dark:text-slate-300">
                         <span className="font-medium">{g.agency}</span> — {g.title} ({g.startYear}
                         {g.endYear && g.endYear !== g.startYear ? `–${g.endYear}` : ""})
-                        {g.external === false && <span className="ml-1 text-xs text-slate-400">(internal)</span>}
+                        {g.external === false && <span className="ml-1 text-xs text-slate-400">{t("internal")}</span>}
                       </li>
                     ))}
                   </ul>

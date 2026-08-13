@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { Copy, Loader2, X } from "lucide-react";
 import type { PIProfile } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 
 export function ColdEmailDialog({ pi, onClose }: { pi: PIProfile; onClose: () => void }) {
+  const { t, lang } = useI18n();
   const [form, setForm] = useState({
     fullName: "",
     currentAffiliation: "",
-    degreeProgram: "MSc student",
+    degreeProgram: lang === "zh" ? "硕士生" : "MSc student",
     researchInterests: "",
     cvUrl: "",
   });
@@ -47,7 +49,7 @@ export function ColdEmailDialog({ pi, onClose }: { pi: PIProfile; onClose: () =>
       >
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-semibold">Draft cold email</h3>
+            <h3 className="text-lg font-semibold">{t("draftEmail")}</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400">to {pi.name}</p>
           </div>
           <button onClick={onClose} aria-label="Close" className="rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -56,14 +58,14 @@ export function ColdEmailDialog({ pi, onClose }: { pi: PIProfile; onClose: () =>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <input className={input} placeholder="Your full name *" value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
-          <input className={input} placeholder="Current affiliation" value={form.currentAffiliation} onChange={(e) => setForm({ ...form, currentAffiliation: e.target.value })} />
-          <input className={input} placeholder="Current program (e.g. MSc student)" value={form.degreeProgram} onChange={(e) => setForm({ ...form, degreeProgram: e.target.value })} />
-          <input className={input} placeholder="CV URL (optional)" value={form.cvUrl} onChange={(e) => setForm({ ...form, cvUrl: e.target.value })} />
+          <input className={input} placeholder={lang === "zh" ? "你的姓名 *" : "Your full name *"} value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
+          <input className={input} placeholder={lang === "zh" ? "当前单位" : "Current affiliation"} value={form.currentAffiliation} onChange={(e) => setForm({ ...form, currentAffiliation: e.target.value })} />
+          <input className={input} placeholder={lang === "zh" ? "当前学位（如 硕士生）" : "Current program (e.g. MSc student)"} value={form.degreeProgram} onChange={(e) => setForm({ ...form, degreeProgram: e.target.value })} />
+          <input className={input} placeholder={lang === "zh" ? "CV 链接（可选）" : "CV URL (optional)"} value={form.cvUrl} onChange={(e) => setForm({ ...form, cvUrl: e.target.value })} />
           <textarea
             className={`${input} sm:col-span-2`}
             rows={3}
-            placeholder="Your research interests / CV summary *"
+            placeholder={lang === "zh" ? "你的研究兴趣 / 简历摘要 *" : "Your research interests / CV summary *"}
             value={form.researchInterests}
             onChange={(e) => setForm({ ...form, researchInterests: e.target.value })}
           />
@@ -75,7 +77,7 @@ export function ColdEmailDialog({ pi, onClose }: { pi: PIProfile; onClose: () =>
           className="mt-4 inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600 disabled:opacity-50"
         >
           {loading && <Loader2 size={14} className="animate-spin" />}
-          Generate
+          {lang === "zh" ? "生成" : "Generate"}
         </button>
 
         {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
@@ -92,7 +94,7 @@ export function ColdEmailDialog({ pi, onClose }: { pi: PIProfile; onClose: () =>
                 }}
                 className="inline-flex items-center gap-1 rounded border border-slate-300 px-2 py-1 text-xs dark:border-slate-700"
               >
-                <Copy size={12} /> {copied ? "Copied" : "Copy"}
+                <Copy size={12} /> {copied ? (lang === "zh" ? "已复制" : "Copied") : lang === "zh" ? "复制" : "Copy"}
               </button>
             </div>
             <pre className="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">{email.body}</pre>

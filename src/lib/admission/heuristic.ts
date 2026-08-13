@@ -203,3 +203,43 @@ export const STATUS_LABEL: Record<AdmissionStatus, string> = {
   STABLE: "Stable",
   DOWNSIZING: "Downsizing / Sabbatical (Hard to Accept)",
 };
+
+export const STATUS_LABEL_ZH: Record<AdmissionStatus, string> = {
+  EXPANDING: "扩组（积极招生）",
+  STABLE: "稳定",
+  DOWNSIZING: "缩组 / 休假（难录取）",
+};
+
+/**
+ * Translate the English admission-reason fragments into Chinese. The reasons
+ * are composed from a bounded set of templates, so phrase substitution covers
+ * them all without re-running the heuristic.
+ */
+const REASON_ZH: [RegExp, string][] = [
+  [/Publication output is accelerating: (.*?) vs (.*?), which usually means the group is growing\./, "论文产出加速：$1 篇 vs $2 篇，通常意味着课题组在扩张。"],
+  [/No publications indexed since (\d+); the group may be inactive, on sabbatical, or winding down\./, "自 $1 年起无索引论文，课题组可能不活跃、休假中或正在收缩。"],
+  [/Output has dropped sharply \((\d+) recent vs (\d+) earlier papers\), a common sign of a shrinking lab\./, "产出锐减（近期 $1 篇 vs 早前 $2 篇），通常是课题组缩小的信号。"],
+  [/Publication rate is steady \((\d+) papers in the last three years\)\./, "发文量平稳（近三年 $1 篇）。"],
+  [/(\d+) external grants active since (\d+) \((.*?)\) — funded slots for new PhD students are likely\./, "$2 年以来有 $1 项外部经费在运行（$3）——很可能还有招收新博士的经费名额。"],
+  [/(\d+) external grant\(s\) still running \((.*?)\), so limited funded capacity exists\./, "仍有 $1 项外部经费在运行（$2），招生经费有限。"],
+  [/No external grant acknowledged since (\d+); funding for a new student is uncertain\./, "自 $1 年起无外部经费致谢，新生的经费不确定。"],
+  [/No external grant records were found — funding capacity could not be verified\./, "未找到外部经费记录——经费能力无法核实。"],
+  [/(\d+) new external awards first appear in (\d+) \((.*?)\) — new awards are frequently followed by new PhD hires\./, "$2 年出现 $1 项新外部资助（$3）——新经费常带来新博士招募。"],
+  [/No new external award since (\d+); the group is running on existing money\./, "自 $1 年起无新外部资助，课题组依靠既有经费运转。"],
+  [/The lab website explicitly signals it is not taking students \("(.*?)"\)\./, "实验室主页明确示意不招生（“$1”）。"],
+  [/The lab website advertises openings \("(.*?)"\), the strongest direct evidence of recruiting\./, "实验室主页发布招生信息（“$1”），是招生最直接的证据。"],
+  [/(\d+) of (\d+) recent papers are broad multi-group collaborations, suggesting a sizeable and still-staffed lab\./, "近 $2 篇论文中有 $1 篇为跨组广泛合作，说明课题组规模可观且人员充足。"],
+  [/Career note reduces capacity: (.*)/, "生涯变动降低招生能力：$1"],
+  [/Career note increases capacity: (.*?) — new labs hire aggressively\./, "生涯变动提升招生能力：$1——新课题组通常积极招人。"],
+  [/Not enough public signal to judge; treat the status as unknown and email to ask directly\./, "公开信号不足以判断，请直接发邮件向导师确认。"],
+];
+
+export function localizeReasons(reasons: string[], lang: "zh" | "en"): string[] {
+  if (lang === "en") return reasons;
+  return reasons.map((r) => {
+    for (const [re, zh] of REASON_ZH) {
+      if (re.test(r)) return r.replace(re, zh);
+    }
+    return r;
+  });
+}

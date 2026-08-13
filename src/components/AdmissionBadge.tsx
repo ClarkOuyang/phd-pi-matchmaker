@@ -2,8 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import type { AdmissionAssessment } from "@/lib/types";
-import { STATUS_LABEL } from "@/lib/admission/heuristic";
+import { STATUS_LABEL, STATUS_LABEL_ZH } from "@/lib/admission/heuristic";
 import { TrendingUp, Minus, TrendingDown } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 const STYLES = {
   EXPANDING: "bg-emerald-100 text-emerald-800 ring-emerald-300 dark:bg-emerald-500/15 dark:text-emerald-300 dark:ring-emerald-500/30",
@@ -14,7 +15,9 @@ const STYLES = {
 const ICONS = { EXPANDING: TrendingUp, STABLE: Minus, DOWNSIZING: TrendingDown } as const;
 
 export function AdmissionBadge({ admission }: { admission: AdmissionAssessment }) {
+  const { lang } = useI18n();
   const Icon = ICONS[admission.status];
+  const label = lang === "zh" ? STATUS_LABEL_ZH[admission.status] : STATUS_LABEL[admission.status];
   return (
     <span
       className={cn(
@@ -24,7 +27,7 @@ export function AdmissionBadge({ admission }: { admission: AdmissionAssessment }
       title={`score ${admission.score} · confidence ${admission.confidence}`}
     >
       <Icon size={13} />
-      {STATUS_LABEL[admission.status]}
+      {label}
       <span className="opacity-60">· {admission.confidence}</span>
     </span>
   );

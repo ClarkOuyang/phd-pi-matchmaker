@@ -9,7 +9,7 @@ const pi: PIProfile = {
   department: "Chemistry",
   universityId: "mit",
   researchAreas: ["Photoelectrochemical Water Splitting"],
-  metrics: { citations: 20000, hIndex: 70, publications: 300, partial: false },
+  metrics: { citations: 20000, hIndex: 70, publications: 300, metricSource: "OpenAlex", partial: false },
   topPapers: [
     { title: "Efficient Solar Water Splitting", year: 2024, venue: "Nature", doi: "10.1038/xyz", citations: 900 },
     { title: "Tandem Photoanodes", year: 2025, citations: 120 },

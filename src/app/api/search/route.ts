@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { runSearch } from "@/lib/search/service";
-import type { Region, SearchQuery } from "@/lib/types";
+import type { Region, RankingSource, SearchQuery } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const REGIONS: Region[] = ["US", "UK", "EU", "Asia", "Other"];
+const RANKINGS: RankingSource[] = ["QS", "THE", "US_NEWS"];
 
 export async function POST(req: Request) {
   let payload: Partial<SearchQuery>;
@@ -24,13 +25,18 @@ export async function POST(req: Request) {
     ? payload.regions.filter((r): r is Region => REGIONS.includes(r as Region))
     : undefined;
 
+  const rankingSource: RankingSource = RANKINGS.includes(payload.rankingSource as RankingSource)
+    ? (payload.rankingSource as RankingSource)
+    : "QS";
+
   const query: SearchQuery = {
     topic,
     regions: regions?.length ? regions : undefined,
     minCitations: Number.isFinite(payload.minCitations) ? Number(payload.minCitations) : undefined,
     recruitingOnly: Boolean(payload.recruitingOnly),
-    rankingSource: payload.rankingSource === "THE" ? "THE" : "QS",
+    rankingSource,
     limit: Number.isFinite(payload.limit) ? Number(payload.limit) : 6,
+    perUniversity: Number.isFinite(payload.perUniversity) ? Number(payload.perUniversity) : undefined,
   };
 
   try {

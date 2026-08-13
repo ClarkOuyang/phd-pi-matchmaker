@@ -9,7 +9,7 @@ import {
   type OpenAlexAuthor,
 } from "@/lib/academic_api/openalex";
 import { assessAdmission } from "@/lib/admission/heuristic";
-import { sortByRanking, UNIVERSITIES } from "@/lib/data/universities";
+import { sortByRanking, UNIVERSITIES, rankOf, type RankingSource } from "@/lib/data/universities";
 import { scrapeLabPage } from "@/lib/scrapers/labPage";
 import type { PIProfile, SearchQuery, SearchResponse, UniversityGroup, University } from "@/lib/types";
 
@@ -64,6 +64,7 @@ async function buildProfile(author: OpenAlexAuthor, uni: University, warnings: s
       citations,
       hIndex,
       publications,
+      metricSource: "OpenAlex",
       lastUpdated: new Date().toISOString(),
       partial: citations === null || hIndex === null || publications === null,
     },
@@ -77,6 +78,7 @@ export async function runSearch(query: SearchQuery): Promise<SearchResponse> {
   const warnings: string[] = [];
   const rankingSource = query.rankingSource ?? "QS";
   const limit = Math.min(query.limit ?? 8, 15);
+  const perUniversity = Math.min(Math.max(query.perUniversity ?? 8, 3), 20);
 
   let universities = UNIVERSITIES;
   if (query.regions?.length) {
@@ -90,7 +92,7 @@ export async function runSearch(query: SearchQuery): Promise<SearchResponse> {
     let authors: OpenAlexAuthor[] = [];
     try {
       authors = await cached(`authors:${uni.id}:${query.topic}`, TTL, () =>
-        searchAuthorsByTopic(query.topic, { institutionId: uni.openAlexId, perPage: 5 }),
+        searchAuthorsByTopic(query.topic, { institutionId: uni.openAlexId, perPage: perUniversity }),
       );
     } catch (err) {
       warnings.push(`Author search failed for ${uni.name}: ${(err as Error).message}`);
@@ -110,11 +112,7 @@ export async function runSearch(query: SearchQuery): Promise<SearchResponse> {
   }
 
   // Ranking hierarchy is the hard requirement: universities strictly by rank.
-  groups.sort((a, b) =>
-    rankingSource === "THE"
-      ? a.university.theRank - b.university.theRank
-      : a.university.qsRank - b.university.qsRank,
-  );
+  groups.sort((a, b) => rankOf(a.university, rankingSource) - rankOf(b.university, rankingSource));
 
   return {
     query,
