@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Award, BookOpen, ChevronDown, ExternalLink, Mail, Quote, Wallet, GraduationCap, Database } from "lucide-react";
+import { Award, BookOpen, Building2, BadgeCheck, ChevronDown, ExternalLink, Mail, Quote, Wallet, GraduationCap, Database } from "lucide-react";
 import { AdmissionBadge } from "@/components/AdmissionBadge";
 import { ColdEmailDialog } from "@/components/ColdEmailDialog";
 import type { PIProfile } from "@/lib/types";
@@ -43,7 +43,14 @@ export function PICard({ pi }: { pi: PIProfile }) {
         <div className="min-w-0">
           <h4 className="truncate text-base font-semibold">{pi.name}</h4>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            {pi.title} · {pi.department}
+            {pi.title}
+          </p>
+          <p className="mt-1 flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300">
+            <Building2 size={12} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span className="font-medium">{pi.affiliatedInstitution ?? pi.department}</span>
+            <span className="inline-flex items-center gap-0.5 rounded bg-emerald-50 px-1 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+              <BadgeCheck size={10} /> {t("affiliationVerified")}
+            </span>
           </p>
           {pi.researchAreas.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">

@@ -44,6 +44,7 @@ const D: Dict = {
   schoolFaculty: { zh: "学院教师主页", en: "Faculty page (search)" },
   personalHome: { zh: "个人主页", en: "Personal site (search)" },
   scholar: { zh: "Google Scholar", en: "Google Scholar" },
+  affiliationVerified: { zh: "已核实隶属", en: "Affiliation verified" },
   whyStatus: { zh: "招生状态判定依据", en: "Why this admission status" },
   repPapers: { zh: "代表性论文", en: "Representative papers" },
   noPapers: { zh: "未找到索引论文。", en: "No indexed publications found." },

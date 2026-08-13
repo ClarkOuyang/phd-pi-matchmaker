@@ -56,8 +56,17 @@ export interface PIProfile {
   id: string;
   name: string;
   title: string;
+  /** Research field / discipline inferred from the author's OpenAlex topics.
+   *  OpenAlex has no department field, so this is NOT a verified department
+   *  name — the real department comes from the official faculty directory
+   *  (see schoolFacultySearch). */
   department: string;
   email?: string;
+  /** Institution this professor is VERIFIED to belong to, taken from OpenAlex
+   *  last_known_institutions and matched against the searched university. This
+   *  is what confirms they are actually at `universityId` and not an external
+   *  collaborator who merely co-authored a paper there. */
+  affiliatedInstitution?: string;
   /** Authoritative ORCID profile (from OpenAlex) — real official academic page. */
   orcid?: string;
   /** Official faculty directory link. We never fabricate a deep URL: this is a

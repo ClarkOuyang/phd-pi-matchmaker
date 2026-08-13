@@ -68,6 +68,14 @@ async function buildProfile(author: OpenAlexAuthor, uni: University, warnings: s
   const publications = author.works_count ?? null;
   const orcid = author.ids?.orcid?.replace(/^https?:\/\/orcid\.org\//, "");
 
+  // Verified institution: the entry in last_known_institutions that matches the
+  // university we searched under. This is the proof the professor actually
+  // belongs to that school (not just an external co-author).
+  const matchedInst = (author.last_known_institutions ?? []).find(
+    (i) => bareId(i.id) === bareId(uni.openAlexId),
+  );
+  const affiliatedInstitution = matchedInst?.display_name ?? uni.name;
+
   const q = encodeURIComponent(author.display_name);
   const schoolFacultySearch = `https://www.google.com/search?q=${encodeURIComponent(`site:${uni.siteDomain} "${author.display_name}" faculty`)}`;
   const personalHomeSearch = `https://www.google.com/search?q=${encodeURIComponent(`"${author.display_name}" (site:.edu OR site:.ac OR site:.org) professor homepage`)}`;
@@ -77,6 +85,7 @@ async function buildProfile(author: OpenAlexAuthor, uni: University, warnings: s
     name: author.display_name,
     title: "Faculty / Principal Investigator",
     department: author.topics?.[0]?.display_name ?? "Interdisciplinary",
+    affiliatedInstitution,
     orcid,
     schoolFacultySearch,
     personalHomeSearch,
